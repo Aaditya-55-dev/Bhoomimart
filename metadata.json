@@ -1,0 +1,8 @@
+{
+  "name": "Bhumimart",
+  "description": "Maharashtra map-first land parcel intelligence platform with real-time property discovery and GIS cadastral mapping",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
