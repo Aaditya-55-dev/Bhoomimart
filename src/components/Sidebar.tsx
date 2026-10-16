@@ -24,17 +24,20 @@ interface SidebarProps {
   mode?: 'buyer' | 'seller';
   user?: AppUser | null;
   userListings?: LandParcel[];
+  userProperties?: LandParcel[];
   currentCenter?: [number, number];
   onAddListing?: (input: SellerPropertyInput) => Promise<void>;
   onDeleteListing?: (id: string) => Promise<void>;
   onEditListing?: (parcel: LandParcel) => void;
   onUpdateListing?: (id: string, updatedData: Partial<LandParcel>) => Promise<void>;
+  properties?: LandParcel[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onToggle,
-  parcels,
+  parcels = [],
+  properties,
   selectedParcel,
   onSelectParcel,
   onOpenDetails,
@@ -48,12 +51,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mode = 'buyer',
   user = null,
   userListings = [],
+  userProperties,
   currentCenter = [19.1383, 77.3210],
   onAddListing,
   onDeleteListing,
   onEditListing,
   onUpdateListing
 }) => {
+  const activeListings = properties || parcels;
+  const activeUserListings = userProperties || userListings;
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'area-desc'>('price-asc');
   
@@ -81,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     'Industrial Estate'
   ];
 
-  const sortedParcels = [...parcels].sort((a, b) => {
+  const sortedParcels = [...activeListings].sort((a, b) => {
     if (sortBy === 'price-asc') return a.price - b.price;
     if (sortBy === 'price-desc') return b.price - a.price;
     if (sortBy === 'area-desc') return b.areaSqft - a.areaSqft;
@@ -249,7 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }`}
                   >
                     <Building2 className="w-3.5 h-3.5" />
-                    <span>My Listings ({userListings.length})</span>
+                    <span>My Listings ({activeUserListings.length})</span>
                   </button>
                 </div>
               </div>
@@ -468,7 +474,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </form>
                 ) : (
                   <div className="space-y-3">
-                    {userListings.length === 0 ? (
+                    {activeUserListings.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                           <Building2 className="w-6 h-6" />
@@ -479,7 +485,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         </p>
                       </div>
                     ) : (
-                      userListings.map((parcel) => (
+                      activeUserListings.map((parcel) => (
                         <div
                           key={parcel.id}
                           className="p-3.5 bg-white/90 border border-slate-200/80 rounded-2xl shadow-xs space-y-2 hover:border-emerald-400 transition-all"
@@ -566,7 +572,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </h2>
                     {hasSearched && (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        {parcels.length} Listings
+                        {activeListings.length} Listings
                       </span>
                     )}
                   </div>
@@ -792,7 +798,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         <Building2 className="w-4 h-4 text-emerald-600" />
-        <span>{mode === 'seller' ? 'Seller Panel' : `Properties (${parcels.length})`}</span>
+        <span>{mode === 'seller' ? 'Seller Panel' : `Properties (${activeListings.length})`}</span>
       </button>
     </>
   );

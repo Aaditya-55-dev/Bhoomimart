@@ -276,6 +276,7 @@ export const MapView: React.FC<MapViewProps> = ({
     const map = L.map(mapContainerRef.current, {
       center: initialCenter,
       zoom: 13,
+      maxZoom: 22,
       zoomControl: false,
       attributionControl: true
     });
@@ -339,7 +340,8 @@ export const MapView: React.FC<MapViewProps> = ({
 
     if (layers.tileMode === 'satellite') {
       baseTileLayerRef.current = L.tileLayer(SATELLITE_TILE_URL, {
-        maxZoom: 19,
+        maxNativeZoom: 18,
+        maxZoom: 22,
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
       }).addTo(map);
     } else {

@@ -36,8 +36,8 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
-  const [parcels, setParcels] = useState<LandParcel[]>([]);
-  const [userListings, setUserListings] = useState<LandParcel[]>([]);
+  const [properties, setProperties] = useState<LandParcel[]>([]);
+  const [userProperties, setUserProperties] = useState<LandParcel[]>([]);
   const [savedInquiries, setSavedInquiries] = useState<UserInquiry[]>([]);
 
   const [selectedParcel, setSelectedParcel] = useState<LandParcel | null>(null);
@@ -91,7 +91,7 @@ export default function App() {
     setHasSearched(true);
     setIsLoading(true);
     setIsScraping(true);
-    setParcels([]);
+    setProperties([]);
     setSelectedParcel(null);
 
     let lat = overrideCoords ? overrideCoords[0] : currentCenter[0];
@@ -125,7 +125,7 @@ export default function App() {
 
       if (scrapeRes.data.success) {
         const scrapedItems: LandParcel[] = scrapeRes.data.properties || [];
-        setParcels(scrapedItems);
+        setProperties(scrapedItems);
         if (scrapedItems.length > 0) {
           setSelectedParcel(scrapedItems[0]);
           showToast(
@@ -141,7 +141,7 @@ export default function App() {
       }
     } catch (err: any) {
       if (axios.isCancel(err) || err.name === 'CanceledError') return;
-      setParcels([]);
+      setProperties([]);
       const errMsg = err?.response?.data?.message || 'Could not retrieve listings for this region';
       showToast(`Search error for ${cleanQuery}`, errMsg);
     } finally {
@@ -157,7 +157,13 @@ export default function App() {
       const url = userUid ? `/api/properties?sellerId=${encodeURIComponent(userUid)}` : '/api/properties';
       const res = await axios.get(url);
       if (res.data.success) {
-        setUserListings(res.data.properties || []);
+        const userProps: LandParcel[] = res.data.properties || [];
+        setUserProperties(userProps);
+        setProperties((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const additions = userProps.filter((p) => !existingIds.has(p.id));
+          return [...additions, ...prev];
+        });
       }
     } catch {}
   }, []);
@@ -238,13 +244,13 @@ export default function App() {
     try {
       const res = await axios.post('/api/properties', payload);
       if (res.data.success && res.data.property) {
-        const newProperty: LandParcel = res.data.property;
-        setUserListings((prev) => [newProperty, ...prev]);
-        setParcels((prev) => [newProperty, ...prev]);
-        setSelectedParcel(newProperty);
-        setCurrentCenter(newProperty.coordinates);
+        const newParcel: LandParcel = res.data.property;
+        setUserProperties((prev) => [newParcel, ...prev]);
+        setProperties((prev) => [newParcel, ...prev]);
+        setSelectedParcel(newParcel);
+        setCurrentCenter(newParcel.coordinates);
         showToast(
-          `Listed: ${newProperty.title}`,
+          `Listed: ${newParcel.title}`,
           `Published in Cadastral Registry • Boundaries active`
         );
       }
@@ -256,8 +262,8 @@ export default function App() {
 
   const handleUpdateListing = async (id: string, updatedData: Partial<LandParcel>) => {
     const activeUid = user?.uid || user?.id;
-    setUserListings((prev) => prev.map((p) => p.id === id ? { ...p, ...updatedData } : p));
-    setParcels((prev) => prev.map((p) => p.id === id ? { ...p, ...updatedData } : p));
+    setUserProperties((prev) => prev.map((p) => p.id === id ? { ...p, ...updatedData } : p));
+    setProperties((prev) => prev.map((p) => p.id === id ? { ...p, ...updatedData } : p));
     if (selectedParcel?.id === id) {
       setSelectedParcel((prev) => prev ? { ...prev, ...updatedData } : null);
     }
@@ -269,8 +275,8 @@ export default function App() {
       const res = await axios.put(`/api/properties/${id}`, updatedData);
       if (res.data?.success && res.data?.property) {
         const syncedProperty: LandParcel = res.data.property;
-        setUserListings((prev) => prev.map((p) => p.id === id ? syncedProperty : p));
-        setParcels((prev) => prev.map((p) => p.id === id ? syncedProperty : p));
+        setUserProperties((prev) => prev.map((p) => p.id === id ? syncedProperty : p));
+        setProperties((prev) => prev.map((p) => p.id === id ? syncedProperty : p));
         if (selectedParcel?.id === id) {
           setSelectedParcel(syncedProperty);
         }
@@ -288,8 +294,8 @@ export default function App() {
 
   const handleDeleteListing = async (listingId: string) => {
     const activeUid = user?.uid || user?.id;
-    setUserListings((prev) => prev.filter((p) => p.id !== listingId));
-    setParcels((prev) => prev.filter((p) => p.id !== listingId));
+    setUserProperties((prev) => prev.filter((p) => p.id !== listingId));
+    setProperties((prev) => prev.filter((p) => p.id !== listingId));
     if (selectedParcel?.id === listingId) {
       setSelectedParcel(null);
     }
@@ -362,51 +368,18 @@ export default function App() {
     } catch {}
   };
 
-  const displayedParcels = [...userListings, ...parcels].reduce<LandParcel[]>((acc, current) => {
+  const allProperties = [...userProperties, ...properties].reduce<LandParcel[]>((acc, current) => {
     if (!acc.some((item) => item.id === current.id)) {
       acc.push(current);
     }
     return acc;
   }, []);
 
-  const filteredParcels = displayedParcels.filter((p) => {
-    if (filters.locality !== 'all' && !p.locality.toLowerCase().includes(filters.locality.toLowerCase()) && !p.city.toLowerCase().includes(filters.locality.toLowerCase())) {
-      return false;
-    }
-    if (filters.propertyType !== 'all' && p.propertyType !== filters.propertyType) {
-      return false;
-    }
-    if (filters.sellerType !== 'all' && p.sellerType !== filters.sellerType) {
-      return false;
-    }
-    if (filters.verifiedOnly && !p.isVerified) {
-      return false;
-    }
-    if (typeof filters.minPrice === 'number' && p.price < filters.minPrice) {
-      return false;
-    }
-    if (typeof filters.maxPrice === 'number' && filters.maxPrice > 0 && p.price > filters.maxPrice) {
-      return false;
-    }
-    if (filters.searchQuery.trim().length > 0) {
-      const q = filters.searchQuery.toLowerCase();
-      const match =
-        p.title.toLowerCase().includes(q) ||
-        p.locality.toLowerCase().includes(q) ||
-        p.city.toLowerCase().includes(q) ||
-        p.country.toLowerCase().includes(q) ||
-        p.surveyNumber.toLowerCase().includes(q) ||
-        p.sellerName.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    return true;
-  });
-
   return (
     <div className="relative w-screen h-[100dvh] overflow-hidden bg-slate-50 text-slate-900">
       
       <MapView
-        parcels={filteredParcels}
+        parcels={allProperties}
         selectedParcel={selectedParcel}
         onSelectParcel={(parcel) => {
           setSelectedParcel(parcel);
@@ -442,7 +415,8 @@ export default function App() {
       <Sidebar
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-        parcels={filteredParcels}
+        parcels={allProperties}
+        properties={allProperties}
         selectedParcel={selectedParcel}
         onSelectParcel={setSelectedParcel}
         onOpenDetails={(parcel) => setModalParcel(parcel)}
@@ -455,7 +429,8 @@ export default function App() {
         currentLocationName={currentLocationName}
         mode={mode}
         user={user}
-        userListings={userListings}
+        userListings={userProperties}
+        userProperties={userProperties}
         currentCenter={currentCenter}
         onAddListing={handleAddSellerListing}
         onUpdateListing={handleUpdateListing}
@@ -516,7 +491,7 @@ export default function App() {
           setSelectedParcel(parcel);
           setModalParcel(parcel);
         }}
-        userListings={userListings}
+        userListings={userProperties}
         savedInquiries={savedInquiries}
         onRemoveInquiry={handleRemoveInquiry}
         onUpdateAvatar={handleUpdateAvatar}
