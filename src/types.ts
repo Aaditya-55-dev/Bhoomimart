@@ -32,7 +32,7 @@ export interface LandParcel {
   areaGunta?: number;
   areaUnit: 'Gunta' | 'Acre' | 'Sqft' | 'Hectare' | 'Sqm';
   areaSqft: number;
-  propertyType: 'Residential Land' | 'Agricultural Parcel' | 'Commercial Plot' | 'Industrial Estate' | 'Home' | 'Plot' | 'Farm';
+  propertyType: 'Residential Land' | 'Agricultural Parcel' | 'Commercial Plot' | 'Industrial Estate' | 'Home' | 'Plot' | 'Farm' | 'Commercial' | 'Land';
   sellerType: 'Direct Owner' | 'Verified Agent' | 'Institutional Registry';
   sellerName: string;
   sellerContact: string;

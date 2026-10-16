@@ -254,6 +254,38 @@ export default function App() {
     }
   };
 
+  const handleUpdateListing = async (id: string, updatedData: Partial<LandParcel>) => {
+    const activeUid = user?.uid || user?.id;
+    setUserListings((prev) => prev.map((p) => p.id === id ? { ...p, ...updatedData } : p));
+    setParcels((prev) => prev.map((p) => p.id === id ? { ...p, ...updatedData } : p));
+    if (selectedParcel?.id === id) {
+      setSelectedParcel((prev) => prev ? { ...prev, ...updatedData } : null);
+    }
+    if (modalParcel?.id === id) {
+      setModalParcel((prev) => prev ? { ...prev, ...updatedData } : null);
+    }
+
+    try {
+      const res = await axios.put(`/api/properties/${id}`, updatedData);
+      if (res.data?.success && res.data?.property) {
+        const syncedProperty: LandParcel = res.data.property;
+        setUserListings((prev) => prev.map((p) => p.id === id ? syncedProperty : p));
+        setParcels((prev) => prev.map((p) => p.id === id ? syncedProperty : p));
+        if (selectedParcel?.id === id) {
+          setSelectedParcel(syncedProperty);
+        }
+        if (modalParcel?.id === id) {
+          setModalParcel(syncedProperty);
+        }
+      }
+      showToast('Listing Updated', 'Changes saved to cadastral registry');
+    } catch (err: any) {
+      fetchUserProperties(activeUid);
+      const msg = err?.response?.data?.message || 'Failed to update property listing';
+      showToast('Update Failed', msg);
+    }
+  };
+
   const handleDeleteListing = async (listingId: string) => {
     const activeUid = user?.uid || user?.id;
     setUserListings((prev) => prev.filter((p) => p.id !== listingId));
@@ -426,6 +458,7 @@ export default function App() {
         userListings={userListings}
         currentCenter={currentCenter}
         onAddListing={handleAddSellerListing}
+        onUpdateListing={handleUpdateListing}
         onDeleteListing={handleDeleteListing}
         onEditListing={(parcel) => {
           setSelectedParcel(parcel);

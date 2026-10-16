@@ -28,6 +28,7 @@ interface SidebarProps {
   onAddListing?: (input: SellerPropertyInput) => Promise<void>;
   onDeleteListing?: (id: string) => Promise<void>;
   onEditListing?: (parcel: LandParcel) => void;
+  onUpdateListing?: (id: string, updatedData: Partial<LandParcel>) => Promise<void>;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -50,12 +51,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentCenter = [19.1383, 77.3210],
   onAddListing,
   onDeleteListing,
-  onEditListing
+  onEditListing,
+  onUpdateListing
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'area-desc'>('price-asc');
   
   const [sellerTab, setSellerTab] = useState<'create' | 'manage'>('create');
+  const [editingParcelId, setEditingParcelId] = useState<string | null>(null);
   const [sellerCategory, setSellerCategory] = useState<'Plot' | 'Land' | 'Farm' | 'Home' | 'Commercial'>('Plot');
   const [sellerTitle, setSellerTitle] = useState('');
   const [sellerPrice, setSellerPrice] = useState<number | ''>('');
@@ -90,38 +93,83 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setSellerLng(Number(currentCenter[1].toFixed(5)));
   };
 
+  const handleStartEdit = (parcel: LandParcel) => {
+    setEditingParcelId(parcel.id);
+    setSellerCategory((parcel.propertyType as any) || 'Plot');
+    setSellerTitle(parcel.title);
+    setSellerPrice(parcel.price);
+    setSellerArea(parcel.area);
+    setSellerAreaUnit((parcel.areaUnit as any) || 'Gunta');
+    setSellerLocality(parcel.locality);
+    setSellerSurvey(parcel.surveyNumber || '');
+    setSellerContact(parcel.sellerContact || user?.email || '');
+    setSellerDescription(parcel.description || '');
+    if (parcel.coordinates && parcel.coordinates.length === 2) {
+      setSellerLat(parcel.coordinates[0]);
+      setSellerLng(parcel.coordinates[1]);
+    }
+    setSellerTab('create');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingParcelId(null);
+    setSellerTitle('');
+    setSellerPrice('');
+    setSellerArea('');
+    setSellerLocality('');
+    setSellerSurvey('');
+    setSellerDescription('');
+  };
+
   const handleSellerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onAddListing) return;
     if (!sellerTitle || sellerPrice === '' || sellerArea === '' || !sellerLocality) return;
 
     setIsSubmitting(true);
     setSubmitSuccess(false);
 
     try {
-      await onAddListing({
-        title: sellerTitle,
-        category: sellerCategory,
-        price: Number(sellerPrice),
-        area: Number(sellerArea),
-        areaUnit: sellerAreaUnit,
-        locality: sellerLocality,
-        coordinates: [Number(sellerLat), Number(sellerLng)],
-        description: sellerDescription,
-        surveyNumber: sellerSurvey,
-        sellerContact: sellerContact || user?.email || '+91 98000 00000',
-        uid: user?.uid || user?.id,
-        sellerId: user?.uid || user?.id,
-        email: user?.email
-      });
-      setSubmitSuccess(true);
-      setSellerTitle('');
-      setSellerPrice('');
-      setSellerArea('');
-      setSellerLocality('');
-      setSellerSurvey('');
-      setSellerDescription('');
-      setTimeout(() => setSubmitSuccess(false), 4000);
+      if (editingParcelId && onUpdateListing) {
+        await onUpdateListing(editingParcelId, {
+          title: sellerTitle,
+          propertyType: sellerCategory,
+          price: Number(sellerPrice),
+          area: Number(sellerArea),
+          areaUnit: sellerAreaUnit,
+          locality: sellerLocality,
+          coordinates: [Number(sellerLat), Number(sellerLng)],
+          description: sellerDescription,
+          surveyNumber: sellerSurvey,
+          sellerContact: sellerContact || user?.email || '+91 98000 00000'
+        });
+        setSubmitSuccess(true);
+        handleCancelEdit();
+        setTimeout(() => setSubmitSuccess(false), 4000);
+      } else if (onAddListing) {
+        await onAddListing({
+          title: sellerTitle,
+          category: sellerCategory,
+          price: Number(sellerPrice),
+          area: Number(sellerArea),
+          areaUnit: sellerAreaUnit,
+          locality: sellerLocality,
+          coordinates: [Number(sellerLat), Number(sellerLng)],
+          description: sellerDescription,
+          surveyNumber: sellerSurvey,
+          sellerContact: sellerContact || user?.email || '+91 98000 00000',
+          uid: user?.uid || user?.id,
+          sellerId: user?.uid || user?.id,
+          email: user?.email
+        });
+        setSubmitSuccess(true);
+        setSellerTitle('');
+        setSellerPrice('');
+        setSellerArea('');
+        setSellerLocality('');
+        setSellerSurvey('');
+        setSellerDescription('');
+        setTimeout(() => setSubmitSuccess(false), 4000);
+      }
     } catch {} finally {
       setIsSubmitting(false);
     }
@@ -188,8 +236,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>List New Property</span>
+                    {editingParcelId ? <Edit3 className="w-3.5 h-3.5" /> : <PlusCircle className="w-3.5 h-3.5" />}
+                    <span>{editingParcelId ? 'Edit Property' : 'List New Property'}</span>
                   </button>
                   <button
                     type="button"
@@ -213,6 +261,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-2 animate-in fade-in duration-200">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                         <span>Property listing published successfully to cadastral registry.</span>
+                      </div>
+                    )}
+
+                    {editingParcelId && (
+                      <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2">
+                          <Edit3 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span className="font-semibold text-[11px]">Editing listing in place</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="text-[11px] font-semibold text-amber-900 hover:text-amber-950 underline cursor-pointer"
+                        >
+                          Cancel
+                        </button>
                       </div>
                     )}
 
@@ -394,8 +458,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       disabled={isSubmitting}
                       className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-700/15 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
                     >
-                      <PlusCircle className="w-4 h-4" />
-                      <span>{isSubmitting ? 'Publishing Cadastral Parcel...' : 'Publish Land Parcel'}</span>
+                      {editingParcelId ? <Check className="w-4 h-4" /> : <PlusCircle className="w-4 h-4" />}
+                      <span>
+                        {isSubmitting
+                          ? (editingParcelId ? 'Saving Changes...' : 'Publishing Cadastral Parcel...')
+                          : (editingParcelId ? 'Save Changes' : 'Publish Land Parcel')}
+                      </span>
                     </button>
                   </form>
                 ) : (
@@ -453,10 +521,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               >
                                 <Compass className="w-3.5 h-3.5" />
                               </button>
-                              {onEditListing && (
+                              {(onUpdateListing || onEditListing) && (
                                 <button
                                   type="button"
-                                  onClick={() => onEditListing(parcel)}
+                                  onClick={() => {
+                                    handleStartEdit(parcel);
+                                    if (onEditListing) {
+                                      onEditListing(parcel);
+                                    }
+                                  }}
                                   className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
                                   title="Edit Listing"
                                 >

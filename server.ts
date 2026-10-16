@@ -37,9 +37,19 @@ const scrapeLimiter = rateLimit({
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
 const STORE_FILE = path.resolve(DATA_DIR, 'store.json');
+const STORE_TMP_FILE = path.resolve(DATA_DIR, 'store.json.tmp');
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+if (!fs.existsSync(STORE_FILE)) {
+  const baseTemplate = {
+    users: [],
+    properties: [],
+    inquiries: []
+  };
+  fs.writeFileSync(STORE_FILE, JSON.stringify(baseTemplate, null, 2), 'utf-8');
 }
 
 interface LocalStore {
@@ -52,15 +62,39 @@ function loadStore(): LocalStore {
   try {
     if (fs.existsSync(STORE_FILE)) {
       const raw = fs.readFileSync(STORE_FILE, 'utf-8');
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      const userMap: Record<string, { user: AppUser; passwordHash: string }> = {};
+      if (Array.isArray(parsed.users)) {
+        parsed.users.forEach((u: any) => {
+          if (u && u.email) {
+            userMap[u.email.toLowerCase().trim()] = { user: u, passwordHash: 'firebase_auth' };
+          }
+        });
+      } else if (parsed.users && typeof parsed.users === 'object') {
+        Object.assign(userMap, parsed.users);
+      }
+      return {
+        users: userMap,
+        userListings: Array.isArray(parsed.properties) ? parsed.properties : (Array.isArray(parsed.userListings) ? parsed.userListings : []),
+        userInquiries: Array.isArray(parsed.inquiries) ? parsed.inquiries : (Array.isArray(parsed.userInquiries) ? parsed.userInquiries : [])
+      };
     }
   } catch {}
   return { users: {}, userListings: [], userInquiries: [] };
 }
 
-function saveStore(data: LocalStore) {
+async function saveStore(data: LocalStore): Promise<void> {
   try {
-    fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    const userList = Object.values(data.users).map(entry => entry.user);
+    const payload = {
+      users: userList,
+      properties: data.userListings,
+      inquiries: data.userInquiries,
+      userListings: data.userListings,
+      userInquiries: data.userInquiries
+    };
+    await fs.promises.writeFile(STORE_TMP_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+    await fs.promises.rename(STORE_TMP_FILE, STORE_FILE);
   } catch {}
 }
 
@@ -234,7 +268,7 @@ async function geocodeLocation(query: string): Promise<GeocodeLocation | null> {
   return null;
 }
 
-app.post('/api/auth/register', (req: Request, res: Response) => {
+app.post('/api/auth/register', async (req: Request, res: Response) => {
   const { name, email, password, uid, avatarUrl } = req.body;
   if (!email || !name) {
     return res.status(400).json({ success: false, message: 'Name and email required' });
@@ -244,7 +278,7 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
     const existing = store.users[cleanEmail];
     if (uid) existing.user.uid = uid;
     if (avatarUrl && !existing.user.avatarUrl) existing.user.avatarUrl = avatarUrl;
-    saveStore(store);
+    await saveStore(store);
     return res.json({
       success: true,
       user: {
@@ -269,7 +303,7 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
     user: newUser,
     passwordHash: password || 'firebase_auth'
   };
-  saveStore(store);
+  await saveStore(store);
 
   res.json({
     success: true,
@@ -278,7 +312,7 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/auth/login', (req: Request, res: Response) => {
+app.post('/api/auth/login', async (req: Request, res: Response) => {
   const { email, password, uid, name, avatarUrl } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'Email required' });
@@ -300,7 +334,7 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
       passwordHash: password || 'firebase_auth'
     };
     record = store.users[cleanEmail];
-    saveStore(store);
+    await saveStore(store);
   }
   if (!record) {
     return res.status(401).json({ success: false, message: 'Invalid email or password' });
@@ -311,7 +345,7 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
 
   if (uid && record.user.uid !== uid) {
     record.user.uid = uid;
-    saveStore(store);
+    await saveStore(store);
   }
 
   const userWithUid: AppUser = {
@@ -326,7 +360,7 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
   });
 });
 
-app.post('/api/auth/google', (req: Request, res: Response) => {
+app.post('/api/auth/google', async (req: Request, res: Response) => {
   const { email, name, avatarUrl, uid } = req.body;
   const userEmail = email ? email.toLowerCase().trim() : 'investor@bhoomimart.in';
   const userName = name || 'Maharashtra Real Estate Investor';
@@ -347,7 +381,7 @@ app.post('/api/auth/google', (req: Request, res: Response) => {
       passwordHash: 'google_auth_oauth'
     };
     userRecord = store.users[userEmail];
-    saveStore(store);
+    await saveStore(store);
   } else {
     if (avatarUrl && !userRecord.user.avatarUrl) {
       userRecord.user.avatarUrl = avatarUrl;
@@ -358,7 +392,7 @@ app.post('/api/auth/google', (req: Request, res: Response) => {
     if (name && name !== 'Maharashtra Real Estate Investor') {
       userRecord.user.name = name;
     }
-    saveStore(store);
+    await saveStore(store);
   }
 
   const userWithUid: AppUser = {
@@ -373,7 +407,7 @@ app.post('/api/auth/google', (req: Request, res: Response) => {
   });
 });
 
-app.put('/api/user/profile', (req: Request, res: Response) => {
+app.put('/api/user/profile', async (req: Request, res: Response) => {
   const { userId, email, avatarUrl, name } = req.body;
   if (!userId && !email) {
     return res.status(400).json({ success: false, message: 'User identifier required' });
@@ -407,7 +441,7 @@ app.put('/api/user/profile', (req: Request, res: Response) => {
     ...existingRecord,
     user: updatedUser
   };
-  saveStore(store);
+  await saveStore(store);
 
   res.json({
     success: true,
@@ -415,7 +449,7 @@ app.put('/api/user/profile', (req: Request, res: Response) => {
   });
 });
 
-function handleCreateProperty(req: Request, res: Response) {
+async function handleCreateProperty(req: Request, res: Response) {
   const {
     title, category, price, area, areaUnit, locality, coordinates,
     description, surveyNumber, sellerContact, userId, uid, sellerId,
@@ -488,7 +522,7 @@ function handleCreateProperty(req: Request, res: Response) {
   };
 
   store.userListings.unshift(newParcel);
-  saveStore(store);
+  await saveStore(store);
 
   res.json({ success: true, property: newParcel });
 }
@@ -517,7 +551,7 @@ function handleGetProperties(req: Request, res: Response) {
   });
 }
 
-function handleUpdateProperty(req: Request, res: Response) {
+async function handleUpdateProperty(req: Request, res: Response) {
   const { id } = req.params;
   const updates = req.body;
   const index = store.userListings.findIndex(p => p.id === id);
@@ -544,15 +578,15 @@ function handleUpdateProperty(req: Request, res: Response) {
   };
 
   store.userListings[index] = updatedParcel;
-  saveStore(store);
+  await saveStore(store);
 
   res.json({ success: true, property: updatedParcel });
 }
 
-function handleDeleteProperty(req: Request, res: Response) {
+async function handleDeleteProperty(req: Request, res: Response) {
   const { id } = req.params;
   store.userListings = store.userListings.filter(p => p.id !== id);
-  saveStore(store);
+  await saveStore(store);
   res.json({ success: true });
 }
 
@@ -575,7 +609,7 @@ app.get('/api/user/inquiries', (req: Request, res: Response) => {
   res.json({ success: true, inquiries: userInqs });
 });
 
-app.post('/api/user/inquiries', (req: Request, res: Response) => {
+app.post('/api/user/inquiries', async (req: Request, res: Response) => {
   const { userId, parcelId, parcelTitle, priceDisplay, locality, sourceHost } = req.body;
   if (!userId || !parcelId) {
     return res.status(400).json({ success: false, message: 'userId and parcelId required' });
@@ -599,15 +633,15 @@ app.post('/api/user/inquiries', (req: Request, res: Response) => {
   };
 
   store.userInquiries.unshift(newInquiry);
-  saveStore(store);
+  await saveStore(store);
 
   res.json({ success: true, inquiry: newInquiry });
 });
 
-app.delete('/api/user/inquiries/:id', (req: Request, res: Response) => {
+app.delete('/api/user/inquiries/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   store.userInquiries = store.userInquiries.filter(i => i.id !== id);
-  saveStore(store);
+  await saveStore(store);
   res.json({ success: true });
 });
 
