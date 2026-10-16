@@ -74,15 +74,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 max-w-md mx-2">
-          <div className="relative flex items-center">
+        <form onSubmit={handleSubmit} className="flex-1 min-w-0 max-w-md mx-1 sm:mx-2">
+          <div className="relative flex items-center min-w-0">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
             <input
               type="text"
               placeholder="Search Maharashtra city, taluka, or area..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-9 py-2 bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 focus:border-emerald-500 rounded-xl text-xs font-normal text-slate-800 placeholder-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
+              className="w-full min-w-0 pl-10 pr-9 py-2 bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 focus:border-emerald-500 rounded-xl text-[16px] sm:text-xs font-normal text-slate-800 placeholder-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/10"
             />
             {searchInput && (
               <button
@@ -195,7 +195,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               key={loc}
               onClick={() => handleChipClick(loc)}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all backdrop-blur-md border ${
+              className={`shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-all backdrop-blur-md border ${
                 isSelected
                   ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
                   : 'bg-white/80 hover:bg-white text-slate-600 border-slate-200/80 shadow-xs'

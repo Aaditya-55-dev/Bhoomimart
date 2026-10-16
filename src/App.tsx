@@ -371,7 +371,7 @@ export default function App() {
   });
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-50 text-slate-900">
+    <div className="relative w-screen h-[100dvh] overflow-hidden bg-slate-50 text-slate-900">
       
       <MapView
         parcels={filteredParcels}

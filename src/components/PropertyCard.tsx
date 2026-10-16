@@ -74,7 +74,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   return (
     <div
       onClick={() => onSelect(parcel)}
-      className={`group relative rounded-2xl p-3.5 transition-all duration-200 cursor-pointer border ${
+      className={`group relative rounded-2xl p-3.5 transition-all duration-200 cursor-pointer border w-[85vw] shrink-0 snap-center sm:w-full ${
         isSelected
           ? 'bg-white/95 border-emerald-500 ring-2 ring-emerald-500/20 shadow-lg shadow-emerald-900/5'
           : 'bg-white/70 hover:bg-white/90 border-slate-200/70 hover:border-slate-300 shadow-[0_4px_20px_0_rgba(15,23,42,0.03)]'

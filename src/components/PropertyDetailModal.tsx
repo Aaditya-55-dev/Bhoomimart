@@ -260,7 +260,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       required
                       value={inquiryName}
                       onChange={(e) => setInquiryName(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[16px] sm:text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
                     />
                     <input
                       type="tel"
@@ -268,7 +268,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
                       required
                       value={inquiryPhone}
                       onChange={(e) => setInquiryPhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[16px] sm:text-xs text-slate-800 focus:outline-none focus:border-emerald-500"
                     />
                     <button
                       type="submit"

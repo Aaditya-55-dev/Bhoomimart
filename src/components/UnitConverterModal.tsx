@@ -102,11 +102,11 @@ export const UnitConverterModal: React.FC<UnitConverterModalProps> = ({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-150 overflow-y-auto"
     >
-      <div className="relative w-full max-w-lg bg-white/95 backdrop-blur-2xl border border-white/80 rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] p-6 text-slate-800 overflow-hidden">
+      <div className="relative w-full max-w-lg max-h-[90dvh] flex flex-col bg-white/95 backdrop-blur-2xl border border-white/80 rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.15)] p-4 sm:p-6 text-slate-800 overflow-hidden">
         
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
               <Calculator className="w-5 h-5" />
@@ -129,7 +129,7 @@ export const UnitConverterModal: React.FC<UnitConverterModalProps> = ({
           </button>
         </div>
 
-        <div className="mt-5 space-y-4">
+        <div className="mt-4 sm:mt-5 space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1.5">Input Area Quantity</label>
@@ -142,7 +142,7 @@ export const UnitConverterModal: React.FC<UnitConverterModalProps> = ({
                   const val = parseFloat(e.target.value);
                   setValue(isNaN(val) ? 0 : val);
                 }}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white transition-colors"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-semibold focus:outline-none focus:border-emerald-500 focus:bg-white transition-colors text-[16px] sm:text-xs"
               />
             </div>
             <div>
@@ -150,7 +150,7 @@ export const UnitConverterModal: React.FC<UnitConverterModalProps> = ({
               <select
                 value={sourceUnit}
                 onChange={(e) => setSourceUnit(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-emerald-500 focus:bg-white transition-colors"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-emerald-500 focus:bg-white transition-colors text-[16px] sm:text-xs"
               >
                 <option value="Gunta">Gunta</option>
                 <option value="Are">Are (R)</option>

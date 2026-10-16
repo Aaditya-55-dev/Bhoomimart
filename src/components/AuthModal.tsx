@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  updateProfile 
+} from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 import { AppUser } from '../types';
 
 interface AuthModalProps {
@@ -37,9 +45,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
 
     try {
+      let fbUser;
+      if (mode === 'signup') {
+        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        fbUser = cred.user;
+        if (name.trim()) {
+          try {
+            await updateProfile(fbUser, { displayName: name.trim() });
+          } catch {}
+        }
+      } else {
+        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+        fbUser = cred.user;
+      }
+
+      const uid = fbUser.uid;
+      const userEmail = fbUser.email || email.trim();
+      const userName = fbUser.displayName || (mode === 'signup' && name.trim() ? name.trim() : userEmail.split('@')[0]);
+      const userPhoto = fbUser.photoURL || undefined;
+
       const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const payload = mode === 'login' ? { email, password } : { name, email, password };
-      
+      const payload = {
+        uid,
+        email: userEmail,
+        password,
+        name: userName,
+        avatarUrl: userPhoto
+      };
+
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,12 +81,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Authentication failed');
+        throw new Error(data.message || 'Authentication synchronization failed');
       }
 
       const authenticatedUser: AppUser = {
         ...data.user,
-        uid: data.user.uid || data.user.id
+        uid: data.user.uid || uid
       };
 
       localStorage.setItem('bhumimart_user', JSON.stringify(authenticatedUser));
@@ -61,7 +94,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onSuccess(authenticatedUser);
       onClose();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Unable to authenticate. Please check your credentials.');
+      let message = err?.message || 'Unable to authenticate. Please check your credentials.';
+      if (err?.code === 'auth/email-already-in-use') {
+        message = 'An account with this email address already exists. Please sign in instead.';
+      } else if (err?.code === 'auth/wrong-password' || err?.code === 'auth/invalid-credential') {
+        message = 'Invalid email or password.';
+      } else if (err?.code === 'auth/weak-password') {
+        message = 'Password should be at least 6 characters.';
+      } else if (err?.code === 'auth/user-not-found') {
+        message = 'No account found with this email. Please create an account.';
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        message = 'Sign-in cancelled.';
+      } else {
+        message = message.replace('Firebase: ', '');
+      }
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
@@ -71,25 +118,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setErrorMsg('');
     setIsLoading(true);
     try {
-      const googleEmail = email.trim() || `user_${Date.now().toString(36)}@gmail.com`;
-      const googleName = name.trim() || 'Verified Land Investor';
+      const result = await signInWithPopup(auth, googleProvider);
+      const fbUser = result.user;
+      const uid = fbUser.uid;
+      const userEmail = fbUser.email || '';
+      const userName = fbUser.displayName || 'Verified Land Investor';
+      const userPhoto = fbUser.photoURL || undefined;
 
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: googleEmail,
-          name: googleName
+          uid,
+          email: userEmail,
+          name: userName,
+          avatarUrl: userPhoto
         })
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Google Sign-in failed');
+        throw new Error(data.message || 'Failed to synchronize user session');
       }
 
       const authenticatedUser: AppUser = {
         ...data.user,
-        uid: data.user.uid || data.user.id
+        uid: data.user.uid || uid
       };
 
       localStorage.setItem('bhumimart_user', JSON.stringify(authenticatedUser));
@@ -97,7 +150,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onSuccess(authenticatedUser);
       onClose();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Google Sign-in failed');
+      let message = err?.message || 'Google Sign-in failed';
+      if (err?.code === 'auth/popup-closed-by-user') {
+        message = 'Sign-in popup closed before completion.';
+      } else {
+        message = message.replace('Firebase: ', '');
+      }
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
@@ -110,9 +169,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/35 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/35 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
     >
-      <div className="relative w-full max-w-md bg-white/80 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.18)] p-6 sm:p-8 text-slate-800 overflow-hidden">
+      <div className="relative w-full max-w-md max-h-[90dvh] flex flex-col bg-white/80 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-[0_20px_60px_-15px_rgba(15,23,42,0.18)] p-6 sm:p-8 text-slate-800 overflow-y-auto custom-scrollbar">
         
         <button
           onClick={onClose}
@@ -121,19 +180,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        <div className="text-center pb-5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 mx-auto flex items-center justify-center text-white shadow-lg shadow-emerald-600/20 mb-3">
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 3L3 7.5L12 12L21 7.5L12 3Z" fill="#ffffff" fillOpacity="0.95"/>
-              <path d="M3 12L12 16.5L21 12" stroke="#ffffff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M3 16.5L12 21L21 16.5" stroke="#ffffff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.75"/>
-              <circle cx="12" cy="7.5" r="1.5" fill="#047857"/>
-            </svg>
-          </div>
+        <div className="text-center pt-2 pb-5 px-4">
           <h2 className="text-xl font-bold text-slate-900 font-heading">
             {mode === 'login' ? 'Welcome to Bhumimart' : 'Create Bhumimart Account'}
           </h2>
-          <p className="text-xs text-slate-500 mt-1 font-normal">
+          <p className="text-xs text-slate-500 mt-1.5 font-normal">
             {mode === 'login' 
               ? 'Sign in to access seller mode, save inquiries & manage land listings' 
               : 'Join the premier land intelligence and cadastral registry'}
@@ -205,7 +256,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   placeholder="e.g., Rajesh Deshmukh"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 transition-all focus:outline-none"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-[16px] sm:text-xs text-slate-900 transition-all focus:outline-none"
                 />
               </div>
             </div>
@@ -221,7 +272,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 transition-all focus:outline-none"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-[16px] sm:text-xs text-slate-900 transition-all focus:outline-none"
               />
             </div>
           </div>
@@ -236,7 +287,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-xs text-slate-900 transition-all focus:outline-none"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50/80 focus:bg-white border border-slate-200 focus:border-emerald-500 rounded-xl text-[16px] sm:text-xs text-slate-900 transition-all focus:outline-none"
               />
             </div>
           </div>

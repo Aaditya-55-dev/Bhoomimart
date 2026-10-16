@@ -235,27 +235,39 @@ async function geocodeLocation(query: string): Promise<GeocodeLocation | null> {
 }
 
 app.post('/api/auth/register', (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
-  if (!email || !password || !name) {
-    return res.status(400).json({ success: false, message: 'Name, email and password required' });
+  const { name, email, password, uid, avatarUrl } = req.body;
+  if (!email || !name) {
+    return res.status(400).json({ success: false, message: 'Name and email required' });
   }
   const cleanEmail = email.toLowerCase().trim();
   if (store.users[cleanEmail]) {
-    return res.status(409).json({ success: false, message: 'Account already exists with this email' });
+    const existing = store.users[cleanEmail];
+    if (uid) existing.user.uid = uid;
+    if (avatarUrl && !existing.user.avatarUrl) existing.user.avatarUrl = avatarUrl;
+    saveStore(store);
+    return res.json({
+      success: true,
+      user: {
+        ...existing.user,
+        uid: existing.user.uid || existing.user.id
+      },
+      token: `token_${existing.user.id}`
+    });
   }
 
-  const generatedId = `usr_${Date.now().toString(36)}`;
+  const generatedId = uid || `usr_${Date.now().toString(36)}`;
   const newUser: AppUser = {
     id: generatedId,
     uid: generatedId,
     name: name.trim(),
     email: cleanEmail,
+    avatarUrl: avatarUrl || undefined,
     createdAt: new Date().toISOString()
   };
 
   store.users[cleanEmail] = {
     user: newUser,
-    passwordHash: password
+    passwordHash: password || 'firebase_auth'
   };
   saveStore(store);
 
@@ -267,14 +279,39 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
 });
 
 app.post('/api/auth/login', (req: Request, res: Response) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ success: false, message: 'Email and password required' });
+  const { email, password, uid, name, avatarUrl } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email required' });
   }
   const cleanEmail = email.toLowerCase().trim();
-  const record = store.users[cleanEmail];
-  if (!record || record.passwordHash !== password) {
+  let record = store.users[cleanEmail];
+  if (!record && uid) {
+    const generatedId = uid || `usr_${Date.now().toString(36)}`;
+    const newUser: AppUser = {
+      id: generatedId,
+      uid: generatedId,
+      name: name ? name.trim() : cleanEmail.split('@')[0],
+      email: cleanEmail,
+      avatarUrl: avatarUrl || undefined,
+      createdAt: new Date().toISOString()
+    };
+    store.users[cleanEmail] = {
+      user: newUser,
+      passwordHash: password || 'firebase_auth'
+    };
+    record = store.users[cleanEmail];
+    saveStore(store);
+  }
+  if (!record) {
     return res.status(401).json({ success: false, message: 'Invalid email or password' });
+  }
+  if (record.passwordHash !== password && !uid) {
+    return res.status(401).json({ success: false, message: 'Invalid email or password' });
+  }
+
+  if (uid && record.user.uid !== uid) {
+    record.user.uid = uid;
+    saveStore(store);
   }
 
   const userWithUid: AppUser = {
@@ -290,13 +327,13 @@ app.post('/api/auth/login', (req: Request, res: Response) => {
 });
 
 app.post('/api/auth/google', (req: Request, res: Response) => {
-  const { email, name, avatarUrl } = req.body;
+  const { email, name, avatarUrl, uid } = req.body;
   const userEmail = email ? email.toLowerCase().trim() : 'investor@bhoomimart.in';
   const userName = name || 'Maharashtra Real Estate Investor';
 
   let userRecord = store.users[userEmail];
   if (!userRecord) {
-    const generatedId = `usr_g_${Date.now().toString(36)}`;
+    const generatedId = uid || `usr_g_${Date.now().toString(36)}`;
     const newUser: AppUser = {
       id: generatedId,
       uid: generatedId,
@@ -310,6 +347,17 @@ app.post('/api/auth/google', (req: Request, res: Response) => {
       passwordHash: 'google_auth_oauth'
     };
     userRecord = store.users[userEmail];
+    saveStore(store);
+  } else {
+    if (avatarUrl && !userRecord.user.avatarUrl) {
+      userRecord.user.avatarUrl = avatarUrl;
+    }
+    if (uid) {
+      userRecord.user.uid = uid;
+    }
+    if (name && name !== 'Maharashtra Real Estate Investor') {
+      userRecord.user.name = name;
+    }
     saveStore(store);
   }
 

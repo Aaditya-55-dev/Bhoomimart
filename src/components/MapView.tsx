@@ -280,7 +280,14 @@ export const MapView: React.FC<MapViewProps> = ({
       attributionControl: true
     });
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    const resizeObserver = new ResizeObserver(() => {
+      mapInstanceRef.current?.invalidateSize();
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
 
     const baseTile = L.tileLayer(OSM_TILE_URL, {
       maxZoom: 19,
@@ -315,6 +322,7 @@ export const MapView: React.FC<MapViewProps> = ({
     mapInstanceRef.current = map;
 
     return () => {
+      resizeObserver.disconnect();
       try {
         map.stop();
         map.remove();
@@ -522,7 +530,11 @@ export const MapView: React.FC<MapViewProps> = ({
       });
 
       const popupNode = createSafePopup(parcel, (p) => onOpenDetailsRef.current(p));
-      marker.bindPopup(popupNode, { maxWidth: 300 });
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+      marker.bindPopup(popupNode, {
+        maxWidth: isMobile ? window.innerWidth - 48 : 300,
+        autoPanPadding: L.point(16, 120)
+      });
 
       markGroup.addLayer(marker);
       markersMapRef.current.set(parcel.id, { marker, parcel });
@@ -574,7 +586,7 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [selectedParcel]);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden">
+    <div className="relative w-screen h-[100dvh] overflow-hidden">
       <div ref={mapContainerRef} className="w-full h-full z-0 select-none" />
     </div>
   );

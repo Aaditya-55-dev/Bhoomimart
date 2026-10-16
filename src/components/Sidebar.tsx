@@ -138,11 +138,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       <aside
         aria-label="Property Directory and Controls"
-        className={`fixed top-20 bottom-4 left-2 sm:left-4 z-30 transition-all duration-300 flex flex-col w-[calc(100vw-1rem)] sm:w-[420px] max-w-[420px] ${
-          isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+2rem)] pointer-events-none'
+        className={`fixed z-40 transition-all duration-300 flex flex-col bottom-4 left-0 right-0 w-full sm:top-20 sm:bottom-4 sm:left-4 sm:right-auto sm:w-[420px] sm:max-w-[420px] ${
+          isOpen
+            ? 'translate-y-0 sm:translate-x-0'
+            : 'translate-y-[calc(100%+2rem)] sm:translate-y-0 sm:-translate-x-[calc(100%+2rem)] pointer-events-none'
         }`}
       >
-        <div className="relative flex flex-col h-full bg-white/75 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-[0_8px_32px_0_rgba(31,38,135,0.08)] overflow-hidden pointer-events-auto">
+        <div className="relative flex flex-col max-h-[85vh] sm:max-h-none sm:h-full bg-white/80 backdrop-blur-2xl border-t sm:border border-white/70 rounded-t-3xl sm:rounded-3xl shadow-[0_-8px_32px_0_rgba(31,38,135,0.08)] sm:shadow-[0_8px_32px_0_rgba(31,38,135,0.08)] overflow-hidden pointer-events-auto">
+          <div className="sm:hidden flex justify-center pt-2.5 pb-1">
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-label="Hide property panel"
+              className="w-12 h-1.5 rounded-full bg-slate-300 hover:bg-slate-400 transition-colors cursor-pointer"
+            />
+          </div>
           
           {mode === 'seller' ? (
             <div className="flex flex-col h-full">
@@ -238,7 +248,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         placeholder="e.g. 5 Guntha Residential NA Plot near Main Road"
                         value={sellerTitle}
                         onChange={(e) => setSellerTitle(e.target.value)}
-                        className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none"
+                        className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[16px] sm:text-xs"
                       />
                     </div>
 
@@ -254,7 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           placeholder="e.g. 3500000"
                           value={sellerPrice}
                           onChange={(e) => setSellerPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                          className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[16px] sm:text-xs"
                         />
                         <span className="text-[10px] text-emerald-700 font-medium mt-0.5 block truncate">
                           {formattedPricePreview}
@@ -274,12 +284,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             placeholder="Qty"
                             value={sellerArea}
                             onChange={(e) => setSellerArea(e.target.value === '' ? '' : Number(e.target.value))}
-                            className="w-1/2 px-2.5 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none"
+                            className="w-1/2 px-2.5 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[16px] sm:text-xs"
                           />
                           <select
                             value={sellerAreaUnit}
                             onChange={(e) => setSellerAreaUnit(e.target.value as any)}
-                            className="w-1/2 px-2 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[11px]"
+                            className="w-1/2 px-2 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[16px] sm:text-[11px]"
                           >
                             <option value="Gunta">Gunta</option>
                             <option value="Acre">Acre</option>
@@ -301,7 +311,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           placeholder="e.g. Taroda Khurd, Nanded"
                           value={sellerLocality}
                           onChange={(e) => setSellerLocality(e.target.value)}
-                          className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[16px] sm:text-xs"
                         />
                       </div>
                       <div>
@@ -313,7 +323,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           placeholder="Sy. No. 84/A"
                           value={sellerSurvey}
                           onChange={(e) => setSellerSurvey(e.target.value)}
-                          className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[16px] sm:text-xs"
                         />
                       </div>
                     </div>
@@ -339,7 +349,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           placeholder="Latitude"
                           value={sellerLat}
                           onChange={(e) => setSellerLat(Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[16px] sm:text-xs"
                         />
                         <input
                           type="number"
@@ -347,7 +357,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           placeholder="Longitude"
                           value={sellerLng}
                           onChange={(e) => setSellerLng(Number(e.target.value))}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[16px] sm:text-xs"
                         />
                       </div>
                     </div>
@@ -362,7 +372,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         placeholder="+91 98000 00000 or email"
                         value={sellerContact}
                         onChange={(e) => setSellerContact(e.target.value)}
-                        className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none"
+                        className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none text-[16px] sm:text-xs"
                       />
                     </div>
 
@@ -375,7 +385,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         placeholder="Provide details about 7/12 title, road touch, boundary demarcations..."
                         value={sellerDescription}
                         onChange={(e) => setSellerDescription(e.target.value)}
-                        className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none resize-none"
+                        className="w-full px-3 py-2 bg-white/90 border border-slate-200/80 rounded-xl focus:border-emerald-500 focus:outline-none resize-none text-[16px] sm:text-xs"
                       />
                     </div>
 
@@ -555,7 +565,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <select
                           value={filters.maxPrice}
                           onChange={(e) => onFilterChange({ ...filters, maxPrice: Number(e.target.value) })}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal text-slate-800 focus:outline-none focus:border-emerald-500"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[16px] sm:text-xs font-normal text-slate-800 focus:outline-none focus:border-emerald-500"
                         >
                           <option value={1000000000}>Any Budget</option>
                           <option value={5000000}>Up to ₹50 Lakh</option>
@@ -570,7 +580,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <select
                           value={sortBy}
                           onChange={(e) => setSortBy(e.target.value as any)}
-                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-normal text-slate-800 focus:outline-none focus:border-emerald-500"
+                          className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[16px] sm:text-xs font-normal text-slate-800 focus:outline-none focus:border-emerald-500"
                         >
                           <option value="price-asc">Price: Low to High</option>
                           <option value="price-desc">Price: High to Low</option>
@@ -604,9 +614,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 pb-4 space-y-3 custom-scrollbar">
+              <div className="flex-1 flex overflow-x-auto snap-x snap-mandatory gap-4 px-4 pb-4 sm:flex-col sm:overflow-y-auto sm:px-0 sm:p-3 sm:space-y-3 custom-scrollbar">
                 {!hasSearched ? (
-                  <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-full shrink-0 flex flex-col items-center justify-center p-6 text-center">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-50/80 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-4 shadow-xs">
                       <Search className="w-6 h-6 stroke-[1.75]" />
                     </div>
@@ -629,7 +639,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   </div>
                 ) : isLoading || isScraping ? (
-                  <div className="space-y-3">
+                  <div className="flex gap-4 sm:flex-col sm:space-y-3 shrink-0">
                     <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-100 text-xs text-emerald-800 flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-emerald-600 animate-spin" />
                       <span>Aggregating live property parcels across registry databases...</span>
@@ -637,7 +647,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {[1, 2, 3].map((n) => (
                       <div
                         key={n}
-                        className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/60 shadow-xs animate-shimmer space-y-3"
+                        className="w-[85vw] shrink-0 sm:w-full p-3.5 rounded-2xl bg-white/80 border border-slate-200/60 shadow-xs animate-shimmer space-y-3"
                       >
                         <div className="w-full aspect-video rounded-xl bg-slate-200" />
                         <div className="space-y-2 py-1">
@@ -654,7 +664,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ))}
                   </div>
                 ) : sortedParcels.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-full shrink-0 flex flex-col items-center justify-center p-6 text-center">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 mb-3">
                       <Building2 className="w-6 h-6" />
                     </div>
@@ -692,12 +702,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <button
         onClick={onToggle}
         aria-label={isOpen ? 'Collapse Panel' : 'Expand Property Listings'}
-        className={`fixed top-24 z-40 p-2.5 rounded-r-2xl bg-white/90 hover:bg-white border border-l-0 border-slate-200 text-slate-700 shadow-md transition-all duration-300 backdrop-blur-md cursor-pointer ${
-          isOpen ? 'left-[calc(100vw-1rem+0.5rem)] sm:left-[436px] max-sm:hidden' : 'left-0'
+        className={`hidden sm:flex fixed top-24 z-40 p-2.5 rounded-r-2xl bg-white/90 hover:bg-white border border-l-0 border-slate-200 text-slate-700 shadow-md transition-all duration-300 backdrop-blur-md cursor-pointer ${
+          isOpen ? 'sm:left-[436px]' : 'sm:left-0'
         }`}
         title={isOpen ? 'Collapse Panel' : 'Expand Property Listings'}
       >
         {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+      </button>
+
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={isOpen ? 'Hide Property Carousel' : 'Show Property Carousel'}
+        className={`sm:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full bg-white/95 backdrop-blur-xl border border-white/80 text-slate-800 shadow-lg text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all duration-300 ${
+          isOpen ? 'opacity-0 pointer-events-none translate-y-8' : 'opacity-100 translate-y-0'
+        }`}
+      >
+        <Building2 className="w-4 h-4 text-emerald-600" />
+        <span>{mode === 'seller' ? 'Seller Panel' : `Properties (${parcels.length})`}</span>
       </button>
     </>
   );
